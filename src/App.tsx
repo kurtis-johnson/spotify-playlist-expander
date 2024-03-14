@@ -25,6 +25,7 @@ const App = () => {
     window.history.replaceState({}, document.title, window.location.pathname);
   }, []);
 
+  // Test Comment
   useEffect(() => {
     (async () => {
       try {
