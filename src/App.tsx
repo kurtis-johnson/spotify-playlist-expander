@@ -1,4 +1,4 @@
-import { Avatar, ListItemAvatar, ListItemButton, ListItemText, ThemeProvider, createTheme } from '@mui/material';
+import { Avatar, ListItemAvatar, ListItemButton, ListItemText } from '@mui/material';
 import FolderIcon from '@mui/icons-material/Folder';
 import './App.css'
 import List from '@mui/material/List';
@@ -18,19 +18,19 @@ const App = () => {
   useEffect(() => {
     let token = localStorage.getItem('access_token');
     if (!token || token === "undefined") {
-      token = window.location.hash.substring(1).split('&')[0].split('=')[1];      
+      token = window.location.hash.substring(1).split('&')[0].split('=')[1];
     }
     setAccessToken(token);
     localStorage.setItem('access_token', token);
     window.history.replaceState({}, document.title, window.location.pathname);
   }, []);
-  
+
   useEffect(() => {
     (async () => {
-      try {        
+      try {
         if (accessToken) {
           const userId = await getLoggedInUserId(accessToken);
-          let userPlaylists:any[] = [];
+          let userPlaylists: any[] = [];
           if (userId) {
             userPlaylists = await generatePlaylists(userId);
           }
@@ -67,19 +67,18 @@ const App = () => {
       }
     }).then(r => {
       return r.json();
-    }).then(data => response = data);
-    console.log(response?.items);
+    }).then(responseJson => response = responseJson);
+    console.log(response);
     const listItems: JSX.Element[] = [];
-    response?.items.forEach((i: Playlist) => {
+    response?.items.forEach((p: Playlist) => {
       listItems.push(
-        <List>
+        <List key={`${p.id}`}>
           <ListItemButton>
             <ListItemAvatar>
-              <Avatar>
-                <FolderIcon />
+              <Avatar variant="square" src={`${p.images ? p.images[0]?.url : <FolderIcon />}`}>
               </Avatar>
             </ListItemAvatar>
-            <ListItemText primary={`${i.name}`} />
+            <ListItemText primary={`${p.name ? p.name : `playlist - ${userId}`}`} />
           </ListItemButton>
         </List>
       );
@@ -95,44 +94,39 @@ const App = () => {
           authorization: `Bearer ${accessToken}`,
         },
       });
-  
+
       if (!response.ok) {
         localStorage.removeItem('access_token');
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-  
+
       const json = await response.json();
-  
+      console.log('Logged in user response', json);
       return json.id;
     } catch (error) {
       console.error('Error:', error);
       throw error;
     }
   }
+  let testText = 'Test';
 
   return (
-    <ThemeProvider theme={() => createTheme({
-      palette: {
-        mode: 'dark',
-      },
-    })}>
+    <>
       <div className="app-container">
         <header className="header">
           <h1>{headerTitle}</h1>
           <button onClick={() => authenticate()}>Auth</button>
         </header>
         <div className="main-container">
-          <nav className="left-navbar">
-            {playlists}
-          </nav>
+          <nav className="left-navbar">{playlists}</nav>
           <div className="main-body">
-            <div className="column" />
+            <div className="column"></div>
             <div className="column" />
           </div>
         </div>
       </div>
       {/* {modalOpen && <AuthModal modalOpen={modalOpen} onClose={() => setIsModalOpen(false)} />} */}
-    </ThemeProvider>
+    </>
   );
 };
 
