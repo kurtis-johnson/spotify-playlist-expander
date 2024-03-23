@@ -9,3 +9,20 @@ export function generateRandomString(length: number) {
     }
     return result;
 }
+
+export async function getListItemsResponse(getUrl: URL, accessToken: String) {
+  let response: any;
+  try {
+    await fetch(getUrl, {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      }
+    }).then(r => {
+      return r.json();
+    }).then(responseJson => response = responseJson);
+  } catch (error) {
+    console.error(error);
+  }
+  return response;
+}

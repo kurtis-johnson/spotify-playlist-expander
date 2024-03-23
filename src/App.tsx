@@ -3,16 +3,20 @@ import FolderIcon from '@mui/icons-material/Folder';
 import './App.css'
 import List from '@mui/material/List';
 import { useEffect, useState } from 'react';
-import { generateRandomString } from './util/utils';
+import { generateRandomString, getListItemsResponse } from './util/utils';
 import { JSX } from 'react/jsx-runtime';
 
+// These should probably be stored somewhere else
 const headerTitle = 'Spotify Project';
 const redirectUri = 'http://localhost:5173';
 const baseUrl = 'https://api.spotify.com/v1/';
+const clientId = '0e5c1689841544a2b738c11417c969e7';
 
 const App = () => {
   const [user, setUser] = useState('');
   const [playlists, setPlaylists] = useState<JSX.Element[]>();
+  const [playlistItems, setPlaylistItems] = useState<JSX.Element[]>();
+  const [playlistId, setPLaylistId] = useState<String>('');
   const [accessToken, setAccessToken] = useState('');
 
   useEffect(() => {
@@ -32,7 +36,7 @@ const App = () => {
           const userId = await getLoggedInUserId(accessToken);
           let userPlaylists: any[] = [];
           if (userId) {
-            userPlaylists = await generatePlaylists(userId);
+            userPlaylists = await getUserPlaylists(userId);
           }
           setUser(userId);
           setPlaylists(userPlaylists)
@@ -44,8 +48,6 @@ const App = () => {
   }, [accessToken]);
 
   const authenticate = () => {
-    // These should probably be stored somewhere else
-    const clientId = '0e5c1689841544a2b738c11417c969e7';
     const state = generateRandomString(16);
     let authEndpoint = 'https://accounts.spotify.com/authorize';
 
@@ -58,22 +60,14 @@ const App = () => {
     window.location.href = authEndpoint;
   }
 
-  const generatePlaylists = async (userId: string) => {
-    let response: any;
-    await fetch(`${baseUrl}users/${userId}/playlists?limit=50`, {
-      method: "GET",
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      }
-    }).then(r => {
-      return r.json();
-    }).then(responseJson => response = responseJson);
-    console.log(response);
-    const listItems: JSX.Element[] = [];
+  const getUserPlaylists = async (userId: string) => {
+    let listItems: JSX.Element[] = [];
+    // Look into infinite scrolling solution to avoid pagination/limit`
+    const response = await getListItemsResponse(new URL(`${baseUrl}me/playlists?limit=50`), accessToken);
     response?.items.forEach((p: Playlist) => {
       listItems.push(
         <List key={`${p.id}`}>
-          <ListItemButton>
+          <ListItemButton onClick={() => getPlaylistItems(accessToken, p.id)}>
             <ListItemAvatar>
               <Avatar variant="square" src={`${p.images ? p.images[0]?.url : <FolderIcon />}`}>
               </Avatar>
@@ -109,6 +103,37 @@ const App = () => {
     }
   }
 
+  const getPlaylistItems = async (accessToken: String, playlistId: String) => {
+    let listItems: JSX.Element[] = [];
+    if (playlistId) {
+      setPLaylistId(playlistId);
+      try {
+        await getListItemsResponse(new URL(`${baseUrl}playlists/${playlistId}`), accessToken)
+        .then((r: any) => {
+          console.log('response', r);
+          if (!r.error) {
+            r?.tracks.items.forEach((i: any) => {
+              listItems.push(
+                <List key={`${i.track.id}`} sx={{background: '#4d4d4d', overflow: 'auto'}}>
+                  <ListItemButton>
+                    <ListItemAvatar>
+                      <Avatar variant="square" src={`${i.track.album.images ? i.track.album.images[0].url : <FolderIcon />}`}>
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText primary={`${i.track.artists[0].name} - ${i.track.name}`} />
+                  </ListItemButton>
+                </List>
+              )
+            })
+          }
+        });
+        setPlaylistItems(listItems);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  }
+
   return (
     <>
       <div className="app-container">
@@ -119,8 +144,7 @@ const App = () => {
         <div className="main-container">
           <nav className="left-navbar">{playlists}</nav>
           <div className="main-body">
-            <div className="column"></div>
-            <div className="column" />
+          <div>{playlistItems}</div>
           </div>
         </div>
       </div>
