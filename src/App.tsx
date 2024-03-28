@@ -95,7 +95,7 @@ const App = () => {
       }
 
       const json = await response.json();
-      console.log('Logged in user response', json);
+      console.log('user response', json);
       return json.id;
     } catch (error) {
       console.error('Error:', error);
